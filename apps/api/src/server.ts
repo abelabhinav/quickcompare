@@ -2,6 +2,15 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import prisma from "./lib/prisma.js";
+import {
+  AllProvidersFailedError,
+  searchAllProviders,
+} from "./providers/index.js";
+import { compareOffers } from "./services/comparison.js";
+
+type CompareQuerystring = {
+  q?: string;
+};
 
 const app = Fastify({
   logger: true,
@@ -32,6 +41,38 @@ app.get("/health/db", async (request, reply) => {
     });
   }
 });
+
+app.get<{ Querystring: CompareQuerystring }>(
+  "/api/compare",
+  async (request, reply) => {
+    const query = request.query.q?.trim();
+
+    if (!query) {
+      return reply.status(400).send({
+        error: "Query parameter 'q' is required and must be a non-empty string",
+      });
+    }
+
+    try {
+      const offers = await searchAllProviders(query);
+      const result = compareOffers(offers);
+
+      return {
+        query,
+        result,
+      };
+    } catch (error) {
+      if (error instanceof AllProvidersFailedError) {
+        request.log.error(error);
+        return reply.status(502).send({
+          error: "Provider search failed",
+        });
+      }
+
+      throw error;
+    }
+  },
+);
 
 const start = async () => {
   try {
