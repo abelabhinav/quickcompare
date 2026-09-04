@@ -1,0 +1,16 @@
+{
+  "name": "quickcompare",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-platform commerce price comparison and shopping intelligence platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "build": "npm run build --workspace=apps/web",
+    "test": "npm run test --workspaces"
+  }
+}
