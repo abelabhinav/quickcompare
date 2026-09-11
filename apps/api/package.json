@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate --schema prisma/schema.prisma && (prisma skills sync || exit 0)"
   },
   "keywords": [],
   "author": "",
