@@ -20,7 +20,9 @@ export type NormalizedOffer = {
 
 export interface CommerceProvider extends ProviderIdentifier {
   search(query: string): Promise<NormalizedOffer[]>;
+  getCatalog?(): MockCatalogItem[] | Promise<MockCatalogItem[]>;
 }
+
 
 export type MockCatalogItem = Omit<
   NormalizedOffer,
@@ -28,4 +30,6 @@ export type MockCatalogItem = Omit<
 > & {
   searchAliases?: string[];
   providerProductPath?: string;
+  productUrl?: string;
 };
+

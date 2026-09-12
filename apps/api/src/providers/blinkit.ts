@@ -55,6 +55,10 @@ export class BlinkitProvider implements CommerceProvider {
       }));
   }
 
+  getCatalog(): MockCatalogItem[] {
+    return CATALOG.map((item) => ({ ...item }));
+  }
+
   private getProductUrl(item: MockCatalogItem): string | undefined {
     if (!item.providerProductPath) {
       return undefined;
@@ -63,3 +67,4 @@ export class BlinkitProvider implements CommerceProvider {
     return `https://blinkit.com${item.providerProductPath}`;
   }
 }
+

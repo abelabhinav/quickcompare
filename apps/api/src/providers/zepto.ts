@@ -20,7 +20,7 @@ export class ZeptoProvider implements CommerceProvider {
       }));
   }
 
-  private getCatalog(): MockCatalogItem[] {
+  getCatalog(): MockCatalogItem[] {
     return [
       {
         productName: "Amul Taaza Toned Milk 1L",

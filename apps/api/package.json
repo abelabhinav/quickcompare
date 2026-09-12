@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --exclude 'dist/**'",
     "dev": "tsx watch src/server.ts",
+
+    "seed": "tsx src/scripts/seed.ts",
+    "sync:catalog": "tsx src/scripts/seed.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "postinstall": "prisma generate --schema prisma/schema.prisma && (prisma skills sync || exit 0)"
   },
+
   "keywords": [],
   "author": "",
   "license": "ISC",

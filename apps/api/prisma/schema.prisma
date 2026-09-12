@@ -7,16 +7,19 @@ datasource db {
 }
 
 model Product {
-  id           String         @id @default(uuid()) @db.Uuid
-  name         String
-  brand        String?
-  category     String?
-  imageUrl     String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  offers       Offer[]
-  priceHistory PriceHistory[]
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  brand         String?
+  category      String?
+  imageUrl      String?
+  searchAliases String[]       @default([])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  offers        Offer[]
+  priceHistory  PriceHistory[]
 
+  @@index([name])
+  @@index([brand])
   @@index([category])
 }
 
@@ -52,6 +55,7 @@ model Offer {
   @@index([productId])
   @@index([providerId])
   @@index([available])
+  @@index([providerId, externalId])
 }
 
 model PriceHistory {
@@ -67,3 +71,4 @@ model PriceHistory {
   @@index([providerId, recordedAt])
   @@index([productId, providerId, recordedAt])
 }
+
