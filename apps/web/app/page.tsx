@@ -70,7 +70,7 @@ export default function Home() {
     <main className="relative min-h-screen overflow-hidden bg-[#060711]/95 text-white">
       {/* Header */}
       <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sm font-black text-black">
               QC
@@ -81,6 +81,10 @@ export default function Home() {
             </span>
           </div>
 
+          <div className="flex items-center gap-3">
+            <LocationControl />
+          </div>
+
           <div className="hidden items-center gap-8 text-sm text-white/60 md:flex">
             <a href="#how-it-works" className="transition hover:text-white">
               How it works
@@ -88,9 +92,6 @@ export default function Home() {
             <a href="#features" className="transition hover:text-white">
               Features
             </a>
-            <button className="rounded-lg border border-white/15 px-4 py-2 text-white transition hover:bg-white/10">
-              Sign in
-            </button>
           </div>
         </div>
       </header>
@@ -114,10 +115,6 @@ export default function Home() {
             Search once and compare prices, delivery speed, discounts and
             availability across multiple shopping platforms.
           </p>
-
-          <div className="relative mt-8 flex w-full justify-center">
-            <LocationControl />
-          </div>
 
           <SearchBar
             value={query}
