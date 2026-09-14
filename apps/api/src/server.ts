@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import type { CompareResponse } from "@quickcompare/shared";
 import prisma from "./lib/prisma.js";
 import { searchProductsInDb } from "./services/productRepository.js";
 import { compareOffers } from "./services/comparison.js";
@@ -55,10 +56,12 @@ export async function createServer() {
         const offers = await searchProductsInDb(query, prisma);
         const result = compareOffers(offers);
 
-        return {
+        const response: CompareResponse = {
           query,
           result,
         };
+
+        return response;
       } catch (error) {
         request.log.error(error);
         return reply.status(500).send({

@@ -1,15 +1,10 @@
-import type { NormalizedOffer } from "../providers/types.js";
+import type {
+  ComparisonResult,
+  EffectiveOffer,
+  NormalizedOffer,
+} from "@quickcompare/shared";
 
-export type EffectiveOffer = NormalizedOffer & {
-  effectiveCost: number;
-};
-
-export type ComparisonResult = {
-  offers: EffectiveOffer[];
-  cheapest: EffectiveOffer | null;
-  fastest: EffectiveOffer | null;
-  bestValue: EffectiveOffer | null;
-};
+export type { EffectiveOffer, ComparisonResult };
 
 const COST_WEIGHT = 0.65;
 const SPEED_WEIGHT = 0.35;

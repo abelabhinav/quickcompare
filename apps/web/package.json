@@ -10,10 +10,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@quickcompare/shared": "*",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
+
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
