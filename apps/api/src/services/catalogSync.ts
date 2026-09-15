@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
-import { providers } from "../providers/index.js";
+import { ProviderRegistry, providerRegistry } from "../providers/index.js";
 import type { CommerceProvider, MockCatalogItem } from "../providers/types.js";
 import prisma from "../lib/prisma.js";
+import { normalizeText } from "../providers/matching.js";
 
 export type SyncSummary = {
   providersSynced: number;
@@ -11,6 +12,45 @@ export type SyncSummary = {
   offersUpdated: number;
   priceHistoryEntriesCreated: number;
 };
+
+function slugify(value: string): string {
+  return normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function getCanonicalKey(item: MockCatalogItem): string {
+  return (
+    item.canonicalKey ??
+    slugify(
+      [
+        item.brand,
+        item.productName,
+        item.variant,
+        item.size,
+        item.unit,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    )
+  );
+}
+
+function getProductData(item: MockCatalogItem) {
+  return {
+    canonicalKey: getCanonicalKey(item),
+    name: item.productName,
+    brand: item.brand ?? null,
+    category: item.category ?? null,
+    categorySlug: item.categorySlug ?? (item.category ? slugify(item.category) : null),
+    subcategory: item.subcategory ?? null,
+    subcategorySlug:
+      item.subcategorySlug ?? (item.subcategory ? slugify(item.subcategory) : null),
+    variant: item.variant ?? null,
+    size: item.size ?? null,
+    unit: item.unit ?? null,
+    imageUrl: item.imageUrl ?? null,
+    description: item.description ?? null,
+  };
+}
 
 export async function syncProviderCatalog(
   provider: CommerceProvider,
@@ -43,37 +83,50 @@ export async function syncProviderCatalog(
 
   // 2. Iterate and upsert products, offers, and price history
   for (const item of items) {
-    // Canonical product matching: match by name and brand (case-insensitive)
-    let product = await prismaClient.product.findFirst({
-      where: {
-        name: { equals: item.productName, mode: "insensitive" },
-        ...(item.brand
-          ? { brand: { equals: item.brand, mode: "insensitive" } }
-          : { brand: null }),
-      },
+    const productData = getProductData(item);
+
+    // Canonical product matching: the canonical key is the product/variant identity.
+    const existingProduct = await prismaClient.product.findUnique({
+      where: { canonicalKey: productData.canonicalKey },
     });
 
-    if (!product) {
-      product = await prismaClient.product.create({
-        data: {
-          name: item.productName,
-          brand: item.brand ?? null,
-          searchAliases: item.searchAliases ?? [],
-        },
-      });
+    let product = await prismaClient.product.upsert({
+      where: { canonicalKey: productData.canonicalKey },
+      create: {
+        ...productData,
+        searchAliases: item.searchAliases ?? [],
+      },
+      update: productData,
+    });
+
+    if (!existingProduct) {
       productsCreated++;
     } else {
       // Merge searchAliases deterministically
-      const currentAliases = product.searchAliases ?? [];
+      const currentAliases = existingProduct.searchAliases ?? [];
       const newAliases = item.searchAliases ?? [];
       const combinedAliases = Array.from(
         new Set([...currentAliases, ...newAliases]),
       );
 
-      if (combinedAliases.length !== currentAliases.length) {
+      const metadataChanged =
+        existingProduct.category !== productData.category ||
+        existingProduct.categorySlug !== productData.categorySlug ||
+        existingProduct.subcategory !== productData.subcategory ||
+        existingProduct.subcategorySlug !== productData.subcategorySlug ||
+        existingProduct.variant !== productData.variant ||
+        existingProduct.size !== productData.size ||
+        existingProduct.unit !== productData.unit ||
+        existingProduct.imageUrl !== productData.imageUrl ||
+        existingProduct.description !== productData.description;
+
+      if (combinedAliases.length !== currentAliases.length || metadataChanged) {
         product = await prismaClient.product.update({
           where: { id: product.id },
-          data: { searchAliases: combinedAliases },
+          data: {
+            ...productData,
+            searchAliases: combinedAliases,
+          },
         });
         productsUpdated++;
       }
@@ -161,6 +214,7 @@ export async function syncProviderCatalog(
 
 export async function syncAllCatalogs(
   prismaClient: PrismaClient = prisma,
+  registry: ProviderRegistry = providerRegistry,
 ): Promise<SyncSummary> {
   const summary: SyncSummary = {
     providersSynced: 0,
@@ -171,7 +225,7 @@ export async function syncAllCatalogs(
     priceHistoryEntriesCreated: 0,
   };
 
-  for (const provider of providers) {
+  for (const provider of registry.list()) {
     const items = provider.getCatalog ? await provider.getCatalog() : [];
     const res = await syncProviderCatalog(provider, items, prismaClient);
 

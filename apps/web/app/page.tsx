@@ -1,11 +1,16 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LocationControl from "../components/LocationControl";
+import ProductCard from "../components/ProductCard";
 import SearchBar from "../components/SearchBar";
 import ResultsSection from "../components/ResultsSection";
-import { searchProducts } from "../lib/api";
-import type { CompareResponse } from "../lib/types";
+import { getCategories, getProductsByCategory, searchProducts } from "../lib/api";
+import type {
+  CompareResponse,
+  DiscoveryCategory,
+  DiscoveryProduct,
+} from "../lib/types";
 
 const EXAMPLE_SEARCHES = [
   "Milk",
@@ -22,7 +27,53 @@ export default function Home() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CompareResponse | null>(null);
+  const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [discoveryProducts, setDiscoveryProducts] = useState<DiscoveryProduct[]>([]);
+  const [isDiscoveryLoading, setIsDiscoveryLoading] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadDiscovery() {
+      try {
+        const loadedCategories = await getCategories();
+        if (!isCurrent) {
+          return;
+        }
+
+        setCategories(loadedCategories);
+        const initialCategory = loadedCategories[0]?.slug ?? null;
+        setSelectedCategory(initialCategory);
+
+        if (initialCategory) {
+          setIsDiscoveryLoading(true);
+          const products = await getProductsByCategory(initialCategory);
+          if (isCurrent) {
+            setDiscoveryProducts(products.slice(0, 8));
+          }
+        }
+      } catch (err) {
+        if (isCurrent) {
+          setDiscoveryError(
+            err instanceof Error ? err.message : "Unable to load discovery.",
+          );
+        }
+      } finally {
+        if (isCurrent) {
+          setIsDiscoveryLoading(false);
+        }
+      }
+    }
+
+    void loadDiscovery();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   const runSearch = useCallback(async (searchTerm: string) => {
     const trimmed = searchTerm.trim();
@@ -65,6 +116,24 @@ export default function Home() {
   const handleExample = useCallback((example: string) => {
     void runSearch(example);
   }, [runSearch]);
+
+  const handleCategorySelect = useCallback(async (slug: string) => {
+    setSelectedCategory(slug);
+    setIsDiscoveryLoading(true);
+    setDiscoveryError(null);
+
+    try {
+      const products = await getProductsByCategory(slug);
+      setDiscoveryProducts(products.slice(0, 8));
+    } catch (err) {
+      setDiscoveryError(
+        err instanceof Error ? err.message : "Unable to load products.",
+      );
+      setDiscoveryProducts([]);
+    } finally {
+      setIsDiscoveryLoading(false);
+    }
+  }, []);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#060711]/95 text-white">
@@ -146,6 +215,80 @@ export default function Home() {
         error={error}
         result={result}
       />
+
+      <section
+        id="discover"
+        className="border-y border-white/10 bg-white/[0.015]"
+      >
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16">
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-violet-300/70">
+                Shop by category
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+                Discover products worth comparing.
+              </h2>
+            </div>
+          </div>
+
+          {categories.length > 0 && (
+            <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {categories.map((category) => {
+                const isSelected = category.slug === selectedCategory;
+
+                return (
+                  <button
+                    key={category.slug}
+                    type="button"
+                    onClick={() => void handleCategorySelect(category.slug)}
+                    className={`min-h-20 rounded-xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-violet-300/50 ${
+                      isSelected
+                        ? "border-white/35 bg-white/[0.08]"
+                        : "border-white/10 bg-white/[0.025] hover:border-white/25"
+                    }`}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="block text-sm font-bold text-white">
+                      {category.name}
+                    </span>
+                    <span className="mt-1 block text-xs text-white/45">
+                      {category.productCount} products
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {discoveryError && (
+            <div className="rounded-xl border border-red-300/20 bg-red-500/10 p-4 text-sm text-red-100">
+              {discoveryError}
+            </div>
+          )}
+
+          {isDiscoveryLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-64 animate-pulse rounded-2xl border border-white/10 bg-white/[0.025]"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {discoveryProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onCompare={(compareQuery) => void runSearch(compareQuery)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* How it works */}
       <section

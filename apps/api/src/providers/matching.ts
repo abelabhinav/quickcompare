@@ -5,6 +5,11 @@
 export type MatchSource = {
   productName: string;
   brand?: string;
+  category?: string;
+  subcategory?: string;
+  variant?: string;
+  size?: string;
+  unit?: string;
   searchAliases?: string[];
 };
 
@@ -25,7 +30,16 @@ export function normalizeText(value: string): string {
  */
 export function getSearchableText(source: MatchSource): string {
   return normalizeText(
-    [source.productName, source.brand, ...(source.searchAliases ?? [])]
+    [
+      source.productName,
+      source.brand,
+      source.category,
+      source.subcategory,
+      source.variant,
+      source.size,
+      source.unit,
+      ...(source.searchAliases ?? []),
+    ]
       .filter(Boolean)
       .join(" "),
   );
@@ -59,9 +73,17 @@ export function matchesQuery(source: MatchSource, query: string): boolean {
     const normalizedBrand = normalizeText(source.brand ?? "");
     const normalizedProductName = normalizeText(source.productName);
     const normalizedAliases = (source.searchAliases ?? []).map(normalizeText);
+    const normalizedCategory = normalizeText(source.category ?? "");
+    const normalizedSubcategory = normalizeText(source.subcategory ?? "");
+    const normalizedVariant = normalizeText(source.variant ?? "");
+    const normalizedSize = normalizeText(source.size ?? "");
 
     return (
       normalizedBrand === token ||
+      normalizedCategory === token ||
+      normalizedSubcategory === token ||
+      normalizedVariant.includes(token) ||
+      normalizedSize === token ||
       normalizedAliases.some((alias) => alias.includes(token)) ||
       normalizedProductName.startsWith(token)
     );

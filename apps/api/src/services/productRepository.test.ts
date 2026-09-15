@@ -30,6 +30,24 @@ describe("ProductRepository & Database Search", () => {
     ).toBe(true);
   });
 
+  it("finds products by category and subcategory", async () => {
+    const groceryOffers = await searchProductsInDb("groceries", prisma);
+    expect(groceryOffers.length).toBeGreaterThan(0);
+    expect(groceryOffers.every((o) => o.category === "Groceries")).toBe(true);
+
+    const oralCareOffers = await searchProductsInDb("oral care", prisma);
+    expect(oralCareOffers.length).toBeGreaterThan(0);
+    expect(oralCareOffers.some((o) => o.subcategory === "Oral Care")).toBe(true);
+  });
+
+  it("finds products by variant and size without merging variants", async () => {
+    const offers = await searchProductsInDb("colgate 200g", prisma);
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((o) => o.brand === "Colgate")).toBe(true);
+    expect(offers.every((o) => o.size === "200")).toBe(true);
+    expect(offers.every((o) => o.unit === "g")).toBe(true);
+  });
+
   it("finds products using multi-token queries across name and brand", async () => {
     const offers = await searchProductsInDb("  AMUL   MILK ", prisma);
     expect(offers.length).toBeGreaterThan(0);
@@ -58,6 +76,11 @@ describe("ProductRepository & Database Search", () => {
       prisma,
     );
     expect(nonExistent).toEqual([]);
+  });
+
+  it("does not match irrelevant substrings for single-token searches", async () => {
+    const offers = await searchProductsInDb("alt", prisma);
+    expect(offers).toEqual([]);
   });
 
   it("serves database-backed comparison results through /api/compare", async () => {
@@ -106,5 +129,70 @@ describe("ProductRepository & Database Search", () => {
       status: "ok",
       database: "connected",
     });
+  });
+
+  it("serves category, brand, and product discovery endpoints", async () => {
+    const app = await createServer();
+
+    const categoriesResponse = await app.inject({
+      method: "GET",
+      url: "/api/categories",
+    });
+    expect(categoriesResponse.statusCode).toBe(200);
+    const categories = JSON.parse(categoriesResponse.body);
+    expect(categories).toContainEqual(
+      expect.objectContaining({ name: "Personal Care", slug: "personal-care" }),
+    );
+
+    const productsResponse = await app.inject({
+      method: "GET",
+      url: "/api/categories/personal-care/products",
+    });
+    expect(productsResponse.statusCode).toBe(200);
+    const products = JSON.parse(productsResponse.body);
+    expect(products.length).toBeGreaterThan(0);
+    expect(products[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        name: expect.any(String),
+        providerCount: expect.any(Number),
+      }),
+    );
+
+    const brandsResponse = await app.inject({
+      method: "GET",
+      url: "/api/brands",
+    });
+    expect(brandsResponse.statusCode).toBe(200);
+    expect(JSON.parse(brandsResponse.body)).toContainEqual(
+      expect.objectContaining({ name: "Colgate", slug: "colgate" }),
+    );
+  });
+
+  it("serves safe provider metadata through /api/providers", async () => {
+    const app = await createServer();
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/providers",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual([
+      {
+        name: "Blinkit",
+        slug: "blinkit",
+        enabled: true,
+        supportsCatalog: true,
+        integrationStatus: "mock",
+      },
+      {
+        name: "Zepto",
+        slug: "zepto",
+        enabled: true,
+        supportsCatalog: true,
+        integrationStatus: "mock",
+      },
+    ]);
   });
 });

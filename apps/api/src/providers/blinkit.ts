@@ -1,8 +1,9 @@
 import type { CommerceProvider, NormalizedOffer } from "./types.js";
 import type { MockCatalogItem } from "./types.js";
 import { matchesQuery } from "./matching.js";
+import { withCatalogMetadata } from "./catalogMetadata.js";
 
-const CATALOG: MockCatalogItem[] = [
+const CATALOG: MockCatalogItem[] = withCatalogMetadata([
   { productName: "Amul Taaza Toned Milk 1L", brand: "Amul", price: 58, deliveryFee: 25, platformFee: 5, discount: 2, available: true, deliveryMinutes: 12, externalId: "blinkit-amul-milk-1l", searchAliases: ["milk", "toned milk", "amul"] },
   { productName: "Britannia Brown Bread 400g", brand: "Britannia", price: 48, deliveryFee: 20, platformFee: 4, discount: 0, available: true, deliveryMinutes: 14, externalId: "blinkit-britannia-bread", searchAliases: ["bread"] },
   { productName: "Eggoz Farm Fresh Eggs 6 pcs", brand: "Eggoz", price: 72, deliveryFee: 22, platformFee: 4, discount: 5, available: true, deliveryMinutes: 16, externalId: "blinkit-eggoz-eggs-6", searchAliases: ["eggs", "egg"] },
@@ -32,7 +33,7 @@ const CATALOG: MockCatalogItem[] = [
   { productName: "Vim Dishwash Gel Lemon 500ml", brand: "Vim", price: 115, deliveryFee: 24, platformFee: 4, discount: 8, available: true, deliveryMinutes: 16, externalId: "blinkit-vim-dishwash", searchAliases: ["dishwash", "dish wash"] },
   { productName: "Lizol Citrus Floor Cleaner 1L", brand: "Lizol", price: 205, deliveryFee: 28, platformFee: 5, discount: 18, available: true, deliveryMinutes: 19, externalId: "blinkit-lizol-floor-cleaner", searchAliases: ["floor cleaner", "cleaner"] },
   { productName: "Bigbasket Garbage Bags Medium 30 pcs", brand: "Bigbasket", price: 120, deliveryFee: 24, platformFee: 4, discount: 10, available: true, deliveryMinutes: 18, externalId: "blinkit-garbage-bags", searchAliases: ["garbage bags", "trash bags"] },
-];
+]);
 
 export class BlinkitProvider implements CommerceProvider {
   name = "Blinkit";
@@ -67,4 +68,3 @@ export class BlinkitProvider implements CommerceProvider {
     return `https://blinkit.com${item.providerProductPath}`;
   }
 }
-

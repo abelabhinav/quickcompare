@@ -1,5 +1,6 @@
 import { matchesQuery } from "./matching.js";
 import type { CommerceProvider, MockCatalogItem, NormalizedOffer } from "./types.js";
+import { withCatalogMetadata } from "./catalogMetadata.js";
 
 export class ZeptoProvider implements CommerceProvider {
   name = "Zepto";
@@ -21,7 +22,7 @@ export class ZeptoProvider implements CommerceProvider {
   }
 
   getCatalog(): MockCatalogItem[] {
-    return [
+    return withCatalogMetadata([
       {
         productName: "Amul Taaza Toned Milk 1L",
         brand: "Amul",
@@ -358,6 +359,6 @@ export class ZeptoProvider implements CommerceProvider {
         externalId: "zepto-garbage-bags-medium-30",
         searchAliases: ["garbage bags", "trash bags"],
       },
-    ].map((item) => ({ ...item }));
+    ]).map((item) => ({ ...item }));
   }
 }

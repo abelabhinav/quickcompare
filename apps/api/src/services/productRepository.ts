@@ -23,11 +23,20 @@ export async function searchProductsInDb(
     const token = tokens[0];
     products = await prismaClient.product.findMany({
       where: {
-        OR: [
-          { name: { startsWith: token, mode: "insensitive" } },
-          { name: { contains: token, mode: "insensitive" } },
-          { brand: { contains: token, mode: "insensitive" } },
-          { searchAliases: { has: token } },
+        AND: [
+          { canonicalKey: { not: null } },
+          {
+            OR: [
+              { name: { startsWith: token, mode: "insensitive" } },
+              { brand: { equals: token, mode: "insensitive" } },
+              { category: { equals: token, mode: "insensitive" } },
+              { subcategory: { equals: token, mode: "insensitive" } },
+              { variant: { startsWith: token, mode: "insensitive" } },
+              { size: { equals: token, mode: "insensitive" } },
+              { unit: { equals: token, mode: "insensitive" } },
+              { searchAliases: { has: token } },
+            ],
+          },
         ],
       },
       include: {
@@ -46,13 +55,18 @@ export async function searchProductsInDb(
       OR: [
         { name: { contains: token, mode: "insensitive" as const } },
         { brand: { contains: token, mode: "insensitive" as const } },
+        { category: { contains: token, mode: "insensitive" as const } },
+        { subcategory: { contains: token, mode: "insensitive" as const } },
+        { variant: { contains: token, mode: "insensitive" as const } },
+        { size: { contains: token, mode: "insensitive" as const } },
+        { unit: { contains: token, mode: "insensitive" as const } },
         { searchAliases: { has: token } },
       ],
     }));
 
     products = await prismaClient.product.findMany({
       where: {
-        AND: andConditions,
+        AND: [{ canonicalKey: { not: null } }, ...andConditions],
       },
       include: {
         offers: {
@@ -76,6 +90,13 @@ export async function searchProductsInDb(
         providerSlug: offer.provider.slug,
         productName: product.name,
         brand: product.brand ?? undefined,
+        category: product.category ?? undefined,
+        subcategory: product.subcategory ?? undefined,
+        variant: product.variant ?? undefined,
+        size: product.size ?? undefined,
+        unit: product.unit ?? undefined,
+        imageUrl: product.imageUrl ?? undefined,
+        description: product.description ?? undefined,
         price: Number(offer.price),
         deliveryFee: Number(offer.deliveryFee),
         platformFee: Number(offer.platformFee),

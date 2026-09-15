@@ -2,30 +2,34 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import prisma from "../lib/prisma.js";
 import { syncProviderCatalog, syncAllCatalogs } from "./catalogSync.js";
 import type { CommerceProvider, MockCatalogItem } from "../providers/types.js";
+import { ProviderRegistry } from "../providers/index.js";
 
 describe("CatalogSyncService", () => {
   async function cleanupTestData() {
+    const testSlugs = ["test-provider-a", "test-provider-b", "test-provider-c"];
     await prisma.offer.deleteMany({
       where: {
         OR: [
-          { provider: { slug: { in: ["test-provider-a", "test-provider-b"] } } },
+          { provider: { slug: { in: testSlugs } } },
           { product: { name: "Test Sync Milk 1L" } },
+          { product: { name: "Registry Sync Cereal 500g" } },
         ],
       },
     });
     await prisma.priceHistory.deleteMany({
       where: {
         OR: [
-          { provider: { slug: { in: ["test-provider-a", "test-provider-b"] } } },
+          { provider: { slug: { in: testSlugs } } },
           { product: { name: "Test Sync Milk 1L" } },
+          { product: { name: "Registry Sync Cereal 500g" } },
         ],
       },
     });
     await prisma.product.deleteMany({
-      where: { name: "Test Sync Milk 1L" },
+      where: { name: { in: ["Test Sync Milk 1L", "Registry Sync Cereal 500g"] } },
     });
     await prisma.provider.deleteMany({
-      where: { slug: { in: ["test-provider-a", "test-provider-b"] } },
+      where: { slug: { in: testSlugs } },
     });
   }
 
@@ -58,6 +62,13 @@ describe("CatalogSyncService", () => {
         deliveryMinutes: 15,
         externalId: "test-sync-milk-a",
         searchAliases: ["milk", "dairy"],
+        category: "Groceries",
+        categorySlug: "groceries",
+        subcategory: "Dairy",
+        subcategorySlug: "dairy",
+        variant: "Toned Milk",
+        size: "1",
+        unit: "L",
       },
     ];
 
@@ -79,6 +90,12 @@ describe("CatalogSyncService", () => {
     });
     expect(product).not.toBeNull();
     expect(product?.brand).toBe("TestBrand");
+    expect(product?.category).toBe("Groceries");
+    expect(product?.subcategory).toBe("Dairy");
+    expect(product?.variant).toBe("Toned Milk");
+    expect(product?.size).toBe("1");
+    expect(product?.unit).toBe("L");
+    expect(product?.canonicalKey).toBe("testbrand-test-sync-milk-1l-toned-milk-1-l");
     expect(product?.searchAliases).toContain("milk");
   });
 
@@ -101,6 +118,13 @@ describe("CatalogSyncService", () => {
         deliveryMinutes: 10,
         externalId: "test-sync-milk-b",
         searchAliases: ["milk", "fresh milk"],
+        category: "Groceries",
+        categorySlug: "groceries",
+        subcategory: "Dairy",
+        subcategorySlug: "dairy",
+        variant: "Toned Milk",
+        size: "1",
+        unit: "L",
       },
     ];
 
@@ -148,6 +172,13 @@ describe("CatalogSyncService", () => {
         deliveryMinutes: 15,
         externalId: "test-sync-milk-a",
         searchAliases: ["milk", "dairy"],
+        category: "Groceries",
+        categorySlug: "groceries",
+        subcategory: "Dairy",
+        subcategorySlug: "dairy",
+        variant: "Toned Milk",
+        size: "1",
+        unit: "L",
       },
     ];
 
@@ -182,6 +213,13 @@ describe("CatalogSyncService", () => {
         deliveryMinutes: 15,
         externalId: "test-sync-milk-a",
         searchAliases: ["milk", "dairy"],
+        category: "Groceries",
+        categorySlug: "groceries",
+        subcategory: "Dairy",
+        subcategorySlug: "dairy",
+        variant: "Toned Milk",
+        size: "1",
+        unit: "L",
       },
     ];
 
@@ -214,5 +252,54 @@ describe("CatalogSyncService", () => {
     expect(summary.offersCreated + summary.offersUpdated).toBeGreaterThanOrEqual(
       50,
     );
+  });
+
+  it("syncAllCatalogs can sync a third provider through an injected registry", async () => {
+    const providerC: CommerceProvider = {
+      name: "TestProviderC",
+      slug: "test-provider-c",
+      search: async () => [],
+      getCatalog: () => [
+        {
+          productName: "Registry Sync Cereal 500g",
+          brand: "Registry Foods",
+          price: 125,
+          deliveryFee: 8,
+          platformFee: 2,
+          discount: 5,
+          available: true,
+          deliveryMinutes: 20,
+          externalId: "test-provider-c-cereal-500g",
+          searchAliases: ["cereal", "breakfast"],
+          category: "Groceries",
+          categorySlug: "groceries",
+          subcategory: "Staples",
+          subcategorySlug: "staples",
+          variant: "Breakfast Cereal",
+          size: "500",
+          unit: "g",
+        },
+      ],
+    };
+
+    const registry = new ProviderRegistry([providerC]);
+    const firstSummary = await syncAllCatalogs(prisma, registry);
+    const secondSummary = await syncAllCatalogs(prisma, registry);
+
+    expect(firstSummary.providersSynced).toBe(1);
+    expect(firstSummary.productsCreated).toBe(1);
+    expect(firstSummary.offersCreated).toBe(1);
+    expect(secondSummary.productsCreated).toBe(0);
+    expect(secondSummary.offersCreated).toBe(0);
+    expect(secondSummary.priceHistoryEntriesCreated).toBe(0);
+
+    await expect(
+      prisma.offer.findFirst({
+        where: {
+          provider: { slug: "test-provider-c" },
+          product: { canonicalKey: "registry-foods-registry-sync-cereal-500g-breakfast-cereal-500-g" },
+        },
+      }),
+    ).resolves.not.toBeNull();
   });
 });

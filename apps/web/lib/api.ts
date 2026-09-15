@@ -1,4 +1,9 @@
-import type { CompareResponse } from "./types";
+import type {
+  CompareResponse,
+  DiscoveryBrand,
+  DiscoveryCategory,
+  DiscoveryProduct,
+} from "./types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -31,4 +36,44 @@ export async function searchProducts(query: string): Promise<CompareResponse> {
   }
 
   return (await response.json()) as CompareResponse;
+}
+
+async function fetchJson<T>(url: string, fallbackMessage: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    throw new Error(fallbackMessage);
+  }
+
+  if (!response.ok) {
+    throw new Error(fallbackMessage);
+  }
+
+  return (await response.json()) as T;
+}
+
+export async function getCategories(): Promise<DiscoveryCategory[]> {
+  return fetchJson<DiscoveryCategory[]>(
+    `${API_BASE_URL}/api/categories`,
+    "Unable to load product categories.",
+  );
+}
+
+export async function getBrands(): Promise<DiscoveryBrand[]> {
+  return fetchJson<DiscoveryBrand[]>(
+    `${API_BASE_URL}/api/brands`,
+    "Unable to load brands.",
+  );
+}
+
+export async function getProductsByCategory(
+  slug: string,
+): Promise<DiscoveryProduct[]> {
+  return fetchJson<DiscoveryProduct[]>(
+    `${API_BASE_URL}/api/categories/${encodeURIComponent(slug)}/products`,
+    "Unable to load products for this category.",
+  );
 }

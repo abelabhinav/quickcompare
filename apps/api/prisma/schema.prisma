@@ -8,10 +8,18 @@ datasource db {
 
 model Product {
   id            String         @id @default(uuid()) @db.Uuid
+  canonicalKey  String?        @unique
   name          String
   brand         String?
   category      String?
+  categorySlug  String?
+  subcategory   String?
+  subcategorySlug String?
+  variant       String?
+  size          String?
+  unit          String?
   imageUrl      String?
+  description   String?
   searchAliases String[]       @default([])
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -21,6 +29,8 @@ model Product {
   @@index([name])
   @@index([brand])
   @@index([category])
+  @@index([categorySlug])
+  @@index([subcategorySlug])
 }
 
 model Provider {

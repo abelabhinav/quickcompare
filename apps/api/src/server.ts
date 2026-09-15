@@ -6,6 +6,13 @@ import prisma from "./lib/prisma.js";
 import { searchProductsInDb } from "./services/productRepository.js";
 import { compareOffers } from "./services/comparison.js";
 import { getProductPriceHistory } from "./services/priceHistory.js";
+import {
+  getBrands,
+  getCategories,
+  getProductById,
+  getProductsByCategory,
+} from "./services/discovery.js";
+import { providerRegistry } from "./providers/index.js";
 
 type CompareQuerystring = {
   q?: string;
@@ -78,6 +85,45 @@ export async function createServer() {
       }
     },
   );
+
+  app.get("/api/categories", async () => {
+    return getCategories(prisma);
+  });
+
+  app.get<{ Params: { slug: string } }>(
+    "/api/categories/:slug/products",
+    async (request) => {
+      return getProductsByCategory(request.params.slug.trim(), prisma);
+    },
+  );
+
+  app.get("/api/brands", async () => {
+    return getBrands(prisma);
+  });
+
+  app.get("/api/providers", async () => {
+    return providerRegistry.getPublicMetadata();
+  });
+
+  app.get<{ Params: ProductParams }>("/api/products/:id", async (request, reply) => {
+    const productId = request.params.id.trim();
+
+    if (!UUID_PATTERN.test(productId)) {
+      return reply.status(400).send({
+        error: "Product ID must be a valid UUID",
+      });
+    }
+
+    const product = await getProductById(productId, prisma);
+
+    if (!product) {
+      return reply.status(404).send({
+        error: "Product not found",
+      });
+    }
+
+    return product;
+  });
 
   app.get<{ Params: ProductParams }>(
     "/api/products/:id/price-history",

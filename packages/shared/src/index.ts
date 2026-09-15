@@ -14,6 +14,13 @@ export type NormalizedOffer = {
   providerSlug: string;
   productName: string;
   brand?: string;
+  category?: string;
+  subcategory?: string;
+  variant?: string;
+  size?: string;
+  unit?: string;
+  imageUrl?: string;
+  description?: string;
   price: number;
   deliveryFee: number;
   platformFee: number;
@@ -52,4 +59,34 @@ export type ComparisonResult = {
 export type CompareResponse = {
   query: string;
   result: ComparisonResult;
+};
+
+export type DiscoveryProduct = {
+  id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  categorySlug?: string;
+  subcategory?: string;
+  subcategorySlug?: string;
+  variant?: string;
+  size?: string;
+  unit?: string;
+  imageUrl?: string;
+  description?: string;
+  lowestPrice?: number;
+  providerCount: number;
+  available: boolean;
+};
+
+export type DiscoveryCategory = {
+  name: string;
+  slug: string;
+  productCount: number;
+};
+
+export type DiscoveryBrand = {
+  name: string;
+  slug: string;
+  productCount: number;
 };

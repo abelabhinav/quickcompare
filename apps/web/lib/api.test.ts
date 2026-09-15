@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { searchProducts } from "./api";
+import { getCategories, getProductsByCategory, searchProducts } from "./api";
 
 const comparisonResponse = {
   query: "milk",
@@ -55,6 +55,42 @@ describe("searchProducts", () => {
 
     await expect(searchProducts("milk")).rejects.toThrow(
       "Provider search failed",
+    );
+  });
+
+  it("loads discovery categories", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([{ name: "Personal Care", slug: "personal-care", productCount: 8 }]),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getCategories()).resolves.toEqual([
+      { name: "Personal Care", slug: "personal-care", productCount: 8 },
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:4000/api/categories", {
+      headers: { Accept: "application/json" },
+    });
+  });
+
+  it("loads products by category slug", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([{ id: "p1", name: "Colgate", providerCount: 2, available: true }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getProductsByCategory("personal-care")).resolves.toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:4000/api/categories/personal-care/products",
+      { headers: { Accept: "application/json" } },
     );
   });
 });
