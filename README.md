@@ -1,26 +1,18 @@
-   # QuickCompare
+# QuickCompare
 
-   Compares [WHAT ITEMS] by price, storage and location using a custom REST API I built.
+A price comparison project that compares products by price, storage and location, using a custom REST API I built.
 
-   ## Features
-   - Compare [items] by price, storage and location
-   - [Any filtering, sorting or search you added]
+## Status
+Work in progress. The foundation is in place: product discovery, provider integration, shared application contracts and a persistent PostgreSQL catalog layer.
 
-   ## Tech stack
-   - [Front end: confirm]
-   - [Backend/API: confirm]
-   - [Database: confirm]
+## Tech stack
+- TypeScript (monorepo with `apps/` and `packages/shared`)
+- Custom REST API
+- PostgreSQL
 
-   ## How to run
-   1. Clone the repo
-   2. [install command]
-   3. [start command]
+## Project structure
+- `apps/`: application code
+- `packages/shared`: shared contracts used across the apps
 
-   ## API endpoints
-   - GET /[endpoint]: [what it returns]
-
-   ## Screenshots
-   [add 1-2]
-
-   ## What I built
-   Designed the API and data model, and built [parts you did].
+## Author
+Built by Abel Abhinav.
